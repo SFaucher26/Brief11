@@ -19,9 +19,9 @@ jobs:
 
   # deuxième job : build du projet en plusieurs étapes  
   build:
-    name: Recuperation version
+    name: build
     # le build doit tourner sur la dernière version d'ubuntu 
-    runs-on: ubuntu:latest
+    runs-on: ubuntu-latest
     if: ${{ needs.get-version.outputs.will-release == 'true' }}
     needs: 
      - get-version
