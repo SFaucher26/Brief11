@@ -28,37 +28,53 @@ jobs:
       - name: step install beta
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: beta
+            toolchain: stable
             override: true
-            components: rustfmt, clippy
-
-      # action qui verifie la compilation des paquets de cargo #
-      - name: Run cargo check
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-
-      # action qui build le projet #
-      - name: Build project
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
+            target: wasm32-unknown-unknown
           
-      # action qui installe trunk car il n'est pas installé dans mon environnement de travail #
+      # action qui installe et execute trunk #
       - name: Install Trunk
-        run: |
-          curl -fsSL https://deno.land/x/install/install.sh | sh
-          export PATH="$HOME/.deno/bin:$PATH"
-          deno install -qAf --unstable https://deno.land/x/trunk@latest/cli.ts
+        uses: jetli/trunk-action@v0.5.0
 
-      # action qui execute trunk #
-      - name: Run Trunk
-        run: trunk build
+      # build du projet avec trunk #
+      - name: build with trunk
+        env:
+         VERSION: "${{ needs.get-version.outputs.version }}"
+        run: trunk build --release
+      - uses: actions/upload-artifact@v4
+        with:
+         name: Chemin
+         path: ./dist
         
-    # troisième job : create-release #
-    needs:
-      create-release:
-    
+  # troisième job : create-release #
+  release:
+    runs-on:
+    - name: Get git tag
+      id: tag
+      uses: devops-actions/action-get-tag@v1.0.2
+
+    - name: (Pre)Release check
+      run: |
+          if [[ ${{ steps.tag.outputs.tag }} =~ ^[0-9]+$ ]]; then
+             echo "TAG_TYPE=numeric" >> $GITHUB_ENV
+          else
+             echo "TAG_TYPE=alphanumeric" >> $GITHUB_ENV
+          fi        
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: env.TAG_TYPE == 'numeric'
+        with:
+          files: |
+            SHA256SUMS
+            *.raw            
+    - name: Draft Release
+      uses: softprops/action-gh-release@v1
+        if: env.TAG_TYPE == 'alphanumeric'
+        with:
+          draft: true
+          files: |
+            SHA256SUMS
+            *.raw    
     
 
       
