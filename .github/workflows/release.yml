@@ -22,7 +22,7 @@ jobs:
     steps:
       # action qui clone le dépot dans l'environnement  de travail du workflow pour pouvoir executer des tests ou des scripts dessus #
       - name: step checkout
-      - uses: actions/checkout@v2
+        uses: actions/checkout@v2
 
       # action qui récupère le numero de la version du projet #
       - name: step install beta
