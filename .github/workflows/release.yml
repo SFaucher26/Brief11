@@ -1,0 +1,40 @@
+name: Release-beta
+
+# action qui déclenche la CI #
+on:
+  push:
+    tags:
+    - 'v*.*.*'
+
+# Job #
+jobs:
+  # premier job : get version à partir d'un autre workflow #
+  get-version:
+    uses: shiipou/github-actions/.github/workflows/get-version.yml@main
+    with: 
+      release-branches: '^(main)$'
+
+  # deuxième job : build du projet #
+  build:
+    # le build doit tourner sur la dernière version d'ubuntu #
+    runs-on: ubuntu:latest
+    # étapes #
+    steps:
+      # action qui clone le dépot dans l'environnement  de travail du workflow pour pouvoir executer des tests ou des scripts dessus #
+      - name: step checkout
+      - uses: actions/checkout@v2
+      
+      - name: step install beta
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: beta
+            override: true
+            components: rustfmt, clippy
+
+      - name: Run cargo check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+
+
+      
