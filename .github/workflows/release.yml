@@ -5,7 +5,10 @@ on:
   push:
     branches:
     - main
-
+# Donne les permissions nécessaire pour écrire du contenu #
+permissions:
+  contents: write
+  
 # Jobs du workflow #
 jobs:
   # premier job : get version à partir d'un autre workflow #
@@ -16,8 +19,12 @@ jobs:
 
   # deuxième job : build du projet en plusieurs étapes  #
   build:
+    name: Recuperation version
     # le build doit tourner sur la dernière version d'ubuntu #
     runs-on: ubuntu:latest
+    if: ${{ needs.get-version.outputs.will-release == 'true' }}
+    needs: 
+     - get-version
     # étapes #
     steps:
       # action qui clone le dépot dans l'environnement  de travail du workflow pour pouvoir executer des tests ou des scripts dessus #
