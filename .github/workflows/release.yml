@@ -1,37 +1,37 @@
 name: Release-beta
 
-# action qui déclenche la CI #
+# action qui déclenche la CI 
 on:
   push:
     branches:
     - main
-# Donne les permissions nécessaire pour écrire du contenu #
+# Donne les permissions nécessaire pour écrire du contenu 
 permissions:
   contents: write
   
-# Jobs du workflow #
+# Jobs du workflow 
 jobs:
-  # premier job : get version à partir d'un autre workflow #
+  # premier job : get version à partir d'un autre workflow
   get-version:
     uses: shiipou/github-actions/.github/workflows/get-version.yml@main
     with: 
       release-branches: '^(main)$'
 
-  # deuxième job : build du projet en plusieurs étapes  #
+  # deuxième job : build du projet en plusieurs étapes  
   build:
     name: Recuperation version
-    # le build doit tourner sur la dernière version d'ubuntu #
+    # le build doit tourner sur la dernière version d'ubuntu 
     runs-on: ubuntu:latest
     if: ${{ needs.get-version.outputs.will-release == 'true' }}
     needs: 
      - get-version
-    # étapes #
+    # étapes 
     steps:
-      # action qui clone le dépot dans l'environnement  de travail du workflow pour pouvoir executer des tests ou des scripts dessus #
+      # action qui clone le dépot dans l'environnement  de travail du workflow pour pouvoir executer des tests ou des scripts dessus 
       - name: step checkout
         uses: actions/checkout@v2
 
-      # action qui récupère le numero de la version du projet #
+      # action qui récupère le numero de la version du projet 
       - name: step install beta
         uses: actions-rs/toolchain@v1
         with:
@@ -39,11 +39,11 @@ jobs:
             override: true
             target: wasm32-unknown-unknown
           
-      # action qui installe et execute trunk #
+      # action qui installe et execute trunk 
       - name: Install Trunk
         uses: jetli/trunk-action@v0.5.0
 
-      # build du projet avec trunk #
+      # build du projet avec trunk 
       - name: build with trunk
         env:
          VERSION: "${{ needs.get-version.outputs.version }}"
@@ -53,14 +53,32 @@ jobs:
          name: Chemin
          path: ./dist
         
-  # troisième job : create-release #
+  # troisième job : Release 
   release:
+    name: Release
     runs-on: ubuntu-latest
-
+    # récupère que les sorties du job get-version et build (outputs)
+    needs:
+      - get-version
+      - build
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Chemin
+          path: ./dist
+      - name: Create Github Release
+        env:
+          VERSION: "${{ needs.get-version.outputs.version }}"
+          REPO: "${{ github.repository }}"
+          COMMIT: "${{ github.sha }}"
+          GH_TOKEN: "${{ github.token }}"
+        # $REPO = le repo sur lequel on veut que ça se fasse
+        # $COMMIT = le commit en rapport au push (prend donc le bon commit et non le dernier effectué)
+        # $VERSION = la version récupérée du get-version
+        # GH_TOKEN = connu et généré par github
+        run: |
+          gh release create --repo $REPO --target $COMMIT $VERSION dist/*
       
 
       
