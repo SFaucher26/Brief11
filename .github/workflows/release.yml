@@ -48,33 +48,15 @@ jobs:
         
   # troisième job : create-release #
   release:
-    runs-on:
-    - name: Get git tag
-      id: tag
-      uses: devops-actions/action-get-tag@v1.0.2
+    runs-on: ubuntu-latest
 
-    - name: (Pre)Release check
-      run: |
-          if [[ ${{ steps.tag.outputs.tag }} =~ ^[0-9]+$ ]]; then
-             echo "TAG_TYPE=numeric" >> $GITHUB_ENV
-          else
-             echo "TAG_TYPE=alphanumeric" >> $GITHUB_ENV
-          fi        
-    - name: Release
-      uses: softprops/action-gh-release@v1
-      if: env.TAG_TYPE == 'numeric'
-        with:
-          files: |
-            SHA256SUMS
-            *.raw            
-    - name: Draft Release
-      uses: softprops/action-gh-release@v1
-        if: env.TAG_TYPE == 'alphanumeric'
-        with:
-          draft: true
-          files: |
-            SHA256SUMS
-            *.raw    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      
+
+      
     
 
       
