@@ -3,10 +3,10 @@ name: Release-beta
 # action qui déclenche la CI #
 on:
   push:
-    tags:
-    - 'v*.*.*'
+    branches:
+    - main
 
-# Job #
+# Jobs du workflow #
 jobs:
   # premier job : get version à partir d'un autre workflow #
   get-version:
@@ -14,7 +14,7 @@ jobs:
     with: 
       release-branches: '^(main)$'
 
-  # deuxième job : build du projet #
+  # deuxième job : build du projet en plusieurs étapes  #
   build:
     # le build doit tourner sur la dernière version d'ubuntu #
     runs-on: ubuntu:latest
@@ -23,7 +23,8 @@ jobs:
       # action qui clone le dépot dans l'environnement  de travail du workflow pour pouvoir executer des tests ou des scripts dessus #
       - name: step checkout
       - uses: actions/checkout@v2
-      
+
+      # action qui récupère le numero de la version du projet #
       - name: step install beta
         uses: actions-rs/toolchain@v1
         with:
@@ -31,10 +32,38 @@ jobs:
             override: true
             components: rustfmt, clippy
 
+      # action qui verifie la compilation des paquets de cargo #
       - name: Run cargo check
         uses: actions-rs/cargo@v1
         with:
           command: check
+
+      # action qui build le projet #
+      - name: Build project
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          
+      # action qui installe trunk car il n'est pas installé dans mon environnement de travail #
+      - name: Install Trunk
+        run: |
+          curl -fsSL https://deno.land/x/install/install.sh | sh
+          export PATH="$HOME/.deno/bin:$PATH"
+          deno install -qAf --unstable https://deno.land/x/trunk@latest/cli.ts
+
+      # action qui execute trunk #
+      - name: Run Trunk
+        run: trunk build
+        
+    # troisième job : create-release #
+    needs:
+      create-release:
+    
+    
+
+      
+
+      
 
 
       
