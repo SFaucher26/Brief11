@@ -93,7 +93,7 @@ jobs:
           CHANGELOGS: "${{needs.get-version.outputs.changelogs }}"
         run: 
           echo "${CHANGELOGS}" > changelog.md
-          if [ "$PRERELEASE" == "true" ] then
+          if [ "$PRERELEASE" == "true" ]; then
             gh release create --prerelease --repo $REPO --target $COMMIT -F changelog.md "v$VERSION" monsite.zip
           else
             gh release create --repo $REPO --target $COMMIT -F changelog.md "v$VERSION" monsite.zip
