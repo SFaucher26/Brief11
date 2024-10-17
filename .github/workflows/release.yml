@@ -67,6 +67,15 @@ jobs:
         with:
           name: Chemin
           path: ./dist
+      - name: Zip files
+        run: zip -r my-artifacts.zip ./dist
+
+      - name: Upload zipped artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: my-artifacts
+          path: my-artifacts.zip
+          
       - name: Create Github Release
         env:
           VERSION: "${{ needs.get-version.outputs.version }}"
