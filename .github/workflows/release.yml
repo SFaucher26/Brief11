@@ -68,7 +68,7 @@ jobs:
           name: Chemin
           path: ./dist
       - name: Zip files
-        run: zip -r my-artifacts.zip ./dist
+        run: zip -r monsite.zip ./dist
           
       - name: Create Github Release
         env:
@@ -81,7 +81,7 @@ jobs:
         # $VERSION = la version récupérée du get-version
         # GH_TOKEN = connu et généré par github
         run: |
-          gh release create --repo $REPO --target $COMMIT $VERSION dist/*
+          gh release create --repo $REPO --target $COMMIT "v$VERSION" monsite.zip
       
 
       
