@@ -16,8 +16,8 @@ jobs:
   get-version:
     uses: shiipou/github-actions/.github/workflows/get-version.yml@main
     with: 
-      release-branches: '^(main)$'
-      prerelease-branches: '^(beta)$'
+      release-branches: '^(main)$' # définie la branche actuelle
+      prerelease-branches: '^(beta)$'# définie la pré-release
 
   # deuxième job : build du projet en plusieurs étapes  
   build:
@@ -34,15 +34,15 @@ jobs:
       - name: step checkout
         uses: actions/checkout@v2
 
-      # action qui récupère le numero de la version du projet 
-      - name: step install beta
+      # action qui permet de compiler du rust
+      - name: Compilation du rust
         uses: actions-rs/toolchain@v1
         with:
             toolchain: stable
             override: true
             target: wasm32-unknown-unknown
           
-      # action qui installe et execute trunk 
+      # action qui installe et execute trunk (workflow d'import déjà créé par un utilisateur github action)
       - name: Install Trunk
         uses: jetli/trunk-action@v0.5.0
 
@@ -51,7 +51,7 @@ jobs:
         env:
          VERSION: "${{ needs.get-version.outputs.version }}"
         run: trunk build --release
-      # action qui zip les fichiers dans dist 
+      # action qui zip les fichiers dans dist (dans github), on peut changer le nom du dossier
       - uses: actions/upload-artifact@v4
         with:
          name: Chemin
@@ -81,7 +81,7 @@ jobs:
         env:
           # $VERSION = la version récupérée du get-version
           VERSION: "${{ needs.get-version.outputs.version }}"
-          # $REPO = le repo sur lequel on veut que ça se fasse
+          # $REPO = le repo appelé
           REPO: "${{ github.repository }}"
           # $COMMIT = le commit en rapport au push (prend donc le bon commit et non le dernier effectué)
           COMMIT: "${{ github.sha }}"
@@ -97,6 +97,7 @@ jobs:
           then
             gh release create --prerelease --repo $REPO --target $COMMIT -F changelog.md "v$VERSION" monsite.zip
           else
+            # -F changelog.md "v$VERSION" = permet d'écrire un file changelog qui contiendra le numero de version + les comits définis avant
             gh release create --repo $REPO --target $COMMIT -F changelog.md "v$VERSION" monsite.zip
           fi
             
