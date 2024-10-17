@@ -5,6 +5,7 @@ on:
   push:
     branches:
     - main
+    - beta
 # Donne les permissions nécessaire pour écrire du contenu 
 permissions:
   contents: write
@@ -16,6 +17,7 @@ jobs:
     uses: shiipou/github-actions/.github/workflows/get-version.yml@main
     with: 
       release-branches: '^(main)$'
+      prerelease-branches: '^(beta)$'
 
   # deuxième job : build du projet en plusieurs étapes  
   build:
@@ -25,8 +27,9 @@ jobs:
     if: ${{ needs.get-version.outputs.will-release == 'true' }}
     needs: 
      - get-version
-    # étapes 
-    steps:
+     
+    # étapes
+    steps:  
       # action qui clone le dépot dans l'environnement  de travail du workflow pour pouvoir executer des tests ou des scripts dessus 
       - name: step checkout
         uses: actions/checkout@v2
@@ -48,6 +51,7 @@ jobs:
         env:
          VERSION: "${{ needs.get-version.outputs.version }}"
         run: trunk build --release
+      # action qui zip les fichiers dans dist 
       - uses: actions/upload-artifact@v4
         with:
          name: Chemin
@@ -56,6 +60,7 @@ jobs:
   # troisième job : Release 
   release:
     name: Release
+    
     runs-on: ubuntu-latest
     # récupère que les sorties du job get-version et build (outputs)
     needs:
@@ -63,25 +68,38 @@ jobs:
       - build
     steps:
       - name: Download artifacts
+        # action qui dézip le fichier dist 
         uses: actions/download-artifact@v4
         with:
           name: Chemin
           path: ./dist
+      # ligne qui rezipe les fichiers 
       - name: Zip files
         run: zip -r monsite.zip ./dist
           
       - name: Create Github Release
         env:
+          # $VERSION = la version récupérée du get-version
           VERSION: "${{ needs.get-version.outputs.version }}"
+          # $REPO = le repo sur lequel on veut que ça se fasse
           REPO: "${{ github.repository }}"
+          # $COMMIT = le commit en rapport au push (prend donc le bon commit et non le dernier effectué)
           COMMIT: "${{ github.sha }}"
+          # GH_TOKEN = connu et généré par github
           GH_TOKEN: "${{ github.token }}"
-        # $REPO = le repo sur lequel on veut que ça se fasse
-        # $COMMIT = le commit en rapport au push (prend donc le bon commit et non le dernier effectué)
-        # $VERSION = la version récupérée du get-version
-        # GH_TOKEN = connu et généré par github
-        run: |
-          gh release create --repo $REPO --target $COMMIT "v$VERSION" monsite.zip
+          # PRERELEASE = récupère si c'est une prerelease
+          PRERELEASE: ${{ needs.get-version.outputs.is-prerelease }}
+          # variable d'environnement pour créer un fichier changelog avec les commits 
+          CHANGELOGS: "${{needs.get-version.outputs.changelogs }}"
+        run: 
+          echo "${CHANGELOGS}" > changelog.md
+          if [ "$PRERELEASE" == "true" ]; then
+            gh release create --prerelease --repo $REPO --target $COMMIT -F changelog.md "v$VERSION" monsite.zip
+          else
+            gh release create --repo $REPO --target $COMMIT -F changelog.md "v$VERSION" monsite.zip
+          fi
+            
+   
       
 
       
